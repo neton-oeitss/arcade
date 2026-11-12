@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr. Oeitss: Operación E-Corp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #020502;
+            color: #00ff66;
+            overflow: hidden;
+            user-select: none;
+        }
+        .font-vt {
+            font-family: 'VT323', monospace;
+        }
+        /* Efecto CRT Scanlines */
+        .crt::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 999;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+        .crt-glow {
+            box-shadow: inset 0 0 150px rgba(0, 255, 102, 0.08);
+        }
+        .glitch {
+            position: relative;
+            color: #00ff66;
+        }
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+        .glitch::before {
+            left: 2px;
+            text-shadow: -2px 0 #ff0055;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 4s infinite linear alternate-reverse;
+        }
+        .glitch::after {
+            left: -2px;
+            text-shadow: -2px 0 #00ffff;
+            clip: rect(15px, 450px, 90px, 0);
+            animation: glitch-anim2 4s infinite linear alternate-reverse;
+        }
+        @keyframes glitch-anim {
+            0% { clip: rect(10px, 9999px, 80px, 0); }
+            50% { clip: rect(40px, 9999px, 20px, 0); }
+            100% { clip: rect(70px, 9999px, 99px, 0); }
+        }
+        @keyframes glitch-anim2 {
+            0% { clip: rect(50px, 9999px, 20px, 0); }
+            50% { clip: rect(10px, 9999px, 70px, 0); }
+            100% { clip: rect(80px, 9999px, 30px, 0); }
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #050a05; }
+        ::-webkit-scrollbar-thumb { background: #00ff66; border-radius: 3px; }
+    </style>
+</head>
+<body class="crt crt-glow h-screen flex flex-col justify-between p-2 md:p-3 select-none">
+
+    <!-- CABECERA Y HUD -->
+    <header class="w-full max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center border-b border-[#00ff66]/30 pb-2 mb-1 gap-2">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded bg-[#00ff66]/10 border border-[#00ff66] flex items-center justify-center font-vt text-xl text-[#00ff66] animate-pulse">
+                [O]
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-vt tracking-wider glitch uppercase font-bold" data-text="MR. OEITSS: OPERACIÓN E-CORP">MR. OEITSS: OPERACIÓN E-CORP</h1>
+                <p class="text-[10px] text-[#00ff66]/70 tracking-widest">CAMPAÑA 8 NODOS PENTESTING // PURGA 5/9</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3 text-xs bg-black/90 border border-[#00ff66]/40 px-3 py-1 rounded">
+            <div class="flex flex-col items-center">
+                <span class="text-[9px] text-[#00ff66]/60">INTEGRIDAD</span>
+                <span id="hud-hp" class="font-vt text-base text-[#00ff66]">100%</span>
+            </div>
+            <div class="h-5 w-px bg-[#00ff66]/30"></div>
+            <div class="flex flex-col items-center">
+                <span class="text-[9px] text-[#00ff66]/60">PUNTOS</span>
+                <span id="hud-score" class="font-vt text-base text-amber-400">000000</span>
+            </div>
+            <div class="h-5 w-px bg-[#00ff66]/30"></div>
+            <div class="flex flex-col items-center">
+                <span class="text-[9px] text-[#00ff66]/60">TERMINALES HACKEADAS</span>
+                <span id="hud-terminals" class="font-vt text-base text-cyan-400">0 / 8</span>
+            </div>
+            <div class="h-5 w-px bg-[#00ff66]/30"></div>
+            <button onclick="toggleAudio()" id="audio-btn" class="border border-[#00ff66]/50 px-2 py-0.5 rounded hover:bg-[#00ff66]/20 transition text-[#00ff66]">
+                AUDIO: <span id="audio-status">OFF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- ZONA PRINCIPAL DE JUEGO -->
+    <main class="w-full max-w-7xl mx-auto flex-1 flex flex-col items-center justify-center relative my-1">
+
+        <!-- PANTALLA DE INICIO -->
+        <div id="start-screen" class="absolute inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6 text-center border border-[#00ff66]/40 rounded shadow-2xl">
+            <div class="max-w-2xl space-y-4">
+                <div class="font-vt text-5xl md:text-6xl text-[#00ff66] glitch mb-2" data-text="EL TIEMPO SE ACABA, AMIGO.">EL TIEMPO SE ACABA, AMIGO.</div>
+                <p class="text-xs md:text-sm text-[#00ff66]/90 leading-relaxed font-mono">
+                    E-Corp almacena los registros de deuda en Steel Mountain. Eres <b>Mr. Oeitss</b>. Infiltra las 3 zonas del complejo corporativo, esquiva los drones de seguridad y hackea las <b class="text-cyan-400">8 terminales de E-Corp</b> utilizando comandos reales de Ciberseguridad y Pentesting avanzado (Nmap, Metasploit, Hydra, Git-Dumper, John, Hashcat, Aircrack-ng, Setoolkit/Rubber Ducky).
+                </p>
+                <div class="bg-[#050b05] border border-[#00ff66]/30 p-3 rounded text-left text-xs text-[#00ff66]/80 space-y-1 font-mono">
+                    <p><span class="text-[#00ff66] font-bold">[CONTROLES DEL OPERATIVO]:</span></p>
+                    <p>• <b class="text-amber-400">A / D</b> o <b class="text-amber-400">Flechas Izquierda / Derecha</b> para caminar.</p>
+                    <p>• <b class="text-amber-400">ESPACIO</b> o <b class="text-amber-400">W / Flecha Arriba</b> para saltar plataformas.</p>
+                    <p>• Acércate a cualquier terminal parpadeante y presiona <b class="text-amber-400">E</b> para abrir la consola.</p>
+                </div>
+                <button onclick="startGame()" class="w-full py-3 bg-[#00ff66] text-black font-bold font-vt text-2xl tracking-widest rounded hover:bg-[#00ff66]/80 transition transform hover:scale-[1.02] shadow-[0_0_20px_rgba(0,255,102,0.4)]">
+                    EJECUTAR INFILTRACIÓN [COMENZAR]
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL DE CONSOLA DE TERMINAL (8 RETOS PENTESTING) -->
+        <div id="hack-modal" class="absolute inset-0 bg-black/92 z-40 flex flex-col items-center justify-center p-4 hidden">
+            <div class="w-full max-w-xl bg-[#030904] border-2 border-[#00ff66] p-5 rounded shadow-[0_0_40px_rgba(0,255,102,0.4)] space-y-4 font-mono">
+                <div class="flex justify-between items-center border-b border-[#00ff66]/30 pb-2">
+                    <span id="hack-title" class="font-vt text-lg text-[#00ff66] tracking-wider">&gt; CONSOLA ROOT E-CORP</span>
+                    <span id="hack-node-id" class="text-xs text-amber-400">NODO 1/8</span>
+                </div>
+                
+                <div id="hack-desc" class="text-xs md:text-sm text-[#00ff66]/90 leading-relaxed bg-black/80 p-3 border border-[#00ff66]/20 rounded">
+                    <!-- Descripción del reto -->
+                </div>
+
+                <div class="bg-black border border-[#00ff66]/50 p-2 rounded flex items-center space-x-2">
+                    <span class="text-[#00ff66] font-bold font-vt text-lg">&gt;</span>
+                    <input type="text" id="terminal-command-input" placeholder="Introduce el comando de ataque y pulsa ENTER..." 
+                           class="w-full bg-transparent border-none outline-none text-[#00ff66] font-mono text-sm placeholder-[#00ff66]/30 uppercase"
+                           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                </div>
+
+                <div class="flex justify-between items-center text-xs text-[#00ff66]/70">
+                    <span id="hack-hint" class="italic text-cyan-400">Pista: Analiza el objetivo técnico.</span>
+                    <span>[ENTER] EJECUTAR</span>
+                </div>
+
+                <div id="hack-feedback" class="text-xs h-6 text-center font-bold"></div>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE GAME OVER -->
+        <div id="gameover-screen" class="absolute inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6 text-center border border-[#ff0055]/40 rounded shadow-2xl hidden">
+            <div class="max-w-md space-y-4">
+                <div class="font-vt text-5xl md:text-6xl text-[#ff0055] glitch" data-text="CONEXIÓN INTERCEPTADA">CONEXIÓN INTERCEPTADA</div>
+                <p class="text-sm text-[#ff0055]/80">Los firewalls corporativos bloquearon al operativo. E-Corp ha restablecido los respaldos.</p>
+                <div class="bg-black border border-[#00ff66]/30 p-4 rounded text-left text-sm space-y-1 font-mono">
+                    <div class="flex justify-between"><span>PUNTUACIÓN FINAL:</span> <span id="go-score" class="text-amber-400 font-bold">0</span></div>
+                    <div class="flex justify-between"><span>NODOS HACKEADOS:</span> <span id="go-terminals" class="text-cyan-400">0 / 8</span></div>
+                </div>
+                <button onclick="resetGame()" class="w-full py-3 bg-[#ff0055] text-white font-bold font-vt text-2xl rounded hover:bg-[#ff0055]/80 transition">
+                    REINICIAR KERNEL [REINTENTAR]
+                </button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE VICTORIA TOTAL -->
+        <div id="victory-screen" class="absolute inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-6 text-center border border-[#00ff66]/60 rounded shadow-2xl hidden">
+            <div class="max-w-md space-y-4">
+                <div class="font-vt text-5xl md:text-6xl text-[#00ff66] glitch" data-text="PURGA 5/9 EXITOSA">PURGA 5/9 EXITOSA</div>
+                <p class="text-sm text-[#00ff66]/90">¡Increíble, amigo! Las 8 terminales corporativas han sido comprometidas. Los registros de papel de E-Corp están destruidos.</p>
+                <div class="bg-black border border-[#00ff66]/30 p-4 rounded text-left text-sm space-y-1 font-mono">
+                    <div class="flex justify-between"><span>PUNTUACIÓN FINAL:</span> <span id="vic-score" class="text-amber-400 font-bold">0</span></div>
+                    <div class="flex justify-between"><span>INTEGRIDAD RESTANTE:</span> <span id="vic-hp" class="text-[#00ff66]">100%</span></div>
+                </div>
+                <button onclick="resetGame()" class="w-full py-3 bg-[#00ff66] text-black font-bold font-vt text-2xl rounded hover:bg-[#00ff66]/80 transition">
+                    JUGAR DE NUEVO [REINICIAR]
+                </button>
+            </div>
+        </div>
+
+        <!-- CANVAS DEL JUEGO (MAPA EXTENDIDO DE 3 ZONAS) -->
+        <div class="w-full max-w-6xl bg-black border border-[#00ff66]/50 shadow-[0_0_30px_rgba(0,255,102,0.15)] relative overflow-hidden rounded">
+            <canvas id="gameCanvas" class="block w-full h-[380px] md:h-[450px] bg-[#020502]"></canvas>
+
+            <!-- AVISO DE INTERACCIÓN 'E' -->
+            <div id="interact-prompt" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/90 border border-[#00ff66] px-4 py-1.5 rounded text-xs text-[#00ff66] font-mono hidden animate-bounce pointer-events-none">
+                [PRESIONA 'E' PARA ACCEDER A LA TERMINAL PENTEST]
+            </div>
+        </div>
+        
+        <!-- BARRA DE ESTADO INFERIOR -->
+        <div class="w-full max-w-6xl bg-black/70 border-b border-x border-[#00ff66]/40 px-4 py-1.5 rounded-b flex justify-between items-center text-xs font-mono text-[#00ff66]/80">
+            <div id="status-log">ESTADO: INFILTRÁNDose EN EL SECTOR 1. BUSCA LAS TERMINALES.</div>
+            <div class="text-[10px] text-[#00ff66]/50">FSOCIETY 2026 // CAMPAÑA 50 MIN</div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="w-full max-w-6xl mx-auto text-center text-xs text-[#00ff66]/50 pt-1 border-t border-[#00ff66]/20">
+        Mr. Oeitss • Simulador Arcade Avanzado de Ciberseguridad & Pentesting
+    </footer>
+
+    <!-- SCRIPT DEL JUEGO -->
+    <script>
+        // --- AUDIO SYNTHESIZER (WEB AUDIO API) ---
+        let audioCtx = null;
+        let soundEnabled = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudio() {
+            initAudio();
+            soundEnabled = !soundEnabled;
+            document.getElementById('audio-status').innerText = soundEnabled ? 'ON' : 'OFF';
+            playBeep(440, 0.05, 'sine');
+        }
+
+        function playBeep(freq, duration, type = 'sine', vol = 0.1) {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e){}
+        }
+
+        function playJumpSound() { playBeep(260, 0.08, 'triangle', 0.1); setTimeout(() => playBeep(420, 0.08, 'triangle', 0.1), 40); }
+        function playSuccessSound() { playBeep(523.25, 0.1, 'triangle', 0.15); setTimeout(() => playBeep(659.25, 0.1, 'triangle', 0.15), 90); setTimeout(() => playBeep(783.99, 0.2, 'triangle', 0.15), 180); }
+        function playDamageSound() { playBeep(140, 0.2, 'sawtooth', 0.2); setTimeout(() => playBeep(80, 0.25, 'sawtooth', 0.2), 90); }
+
+        // --- MOTOR DEL JUEGO Y MAPA EXTENDIDO ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = window.innerWidth < 768 ? 380 : 450;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let gameState = 'START'; // START, PLAYING, HACKING, GAMEOVER, VICTORY
+        let score = 0;
+        let hp = 100;
+        let cameraX = 0;
+        let levelWidth = 5200; // Mapa muy amplio para la campaña larga
+
+        // Personaje Mr. Oeitss (Humano con sudadera negra y capucha pixel art)
+        let player = {
+            x: 50,
+            y: 260,
+            width: 26,
+            height: 48,
+            vx: 0,
+            vy: 0,
+            speed: 4.2,
+            jumpForce: -10.8,
+            gravity: 0.46,
+            grounded: false,
+            facing: 'right'
+        };
+
+        let keys = { left: false, right: false };
+
+        // Plataformas extensas del complejo E-Corp (3 zonas conectadas)
+        let platforms = [
+            // Zona 1: Servidores de Entrada
+            { x: 0, y: 360, width: 1400, height: 40, type: 'floor' },
+            { x: 250, y: 260, width: 180, height: 16 },
+            { x: 520, y: 180, width: 200, height: 16 },
+            { x: 820, y: 260, width: 170, height: 16 },
+            { x: 1080, y: 170, width: 220, height: 16 },
+
+            // Zona 2: Pasillos de Red y Encriptación
+            { x: 1500, y: 360, width: 1800, height: 40, type: 'floor' },
+            { x: 1650, y: 260, width: 180, height: 16 },
+            { x: 1930, y: 180, width: 210, height: 16 },
+            { x: 2250, y: 260, width: 190, height: 16 },
+            { x: 2580, y: 170, width: 220, height: 16 },
+            { x: 2900, y: 250, width: 180, height: 16 },
+
+            // Zona 3: Búnker Principal de Steel Mountain
+            { x: 3400, y: 360, width: 1800, height: 40, type: 'floor' },
+            { x: 3600, y: 260, width: 200, height: 16 },
+            { x: 3900, y: 170, width: 220, height: 16 },
+            { x: 4250, y: 250, width: 190, height: 16 },
+            { x: 4580, y: 170, width: 240, height: 16 },
+            { x: 4900, y: 240, width: 200, height: 16 }
+        ];
+
+        // 8 Terminales Corporativas con retos de Pentesting Avanzado
+        let terminals = [
+            { 
+                id: 1, x: 580, y: 130, width: 34, height: 50, hacked: false, 
+                command: 'NMAP', 
+                desc: 'NODO 1: Escaneo de red inicial en la subred de E-Corp para identificar puertos abiertos y servicios activos.',
+                hint: 'Comando de reconocimiento de puertos: nmap'
+            },
+            { 
+                id: 2, x: 1150, y: 120, width: 34, height: 50, hacked: false, 
+                command: 'MSFCONSOLE', 
+                desc: 'NODO 2: Lanzamiento del framework de explotación para desplegar payloads contra servicios obsoletos.',
+                hint: 'Comando framework de exploits: msfconsole'
+            },
+            { 
+                id: 3, x: 1980, y: 130, width: 34, height: 50, hacked: false, 
+                command: 'HYDRA', 
+                desc: 'NODO 3: Ataque de fuerza bruta optimizado contra el servicio SSH/FTP corporativo utilizando diccionarios.',
+                hint: 'Comando de fuerza bruta: hydra'
+            },
+            { 
+                id: 4, x: 2630, y: 120, width: 34, height: 50, hacked: false, 
+                command: 'GIT-DUMPER', 
+                desc: 'NODO 4: Extracción de código fuente expuesto y credenciales olvidadas en repositorios .git públicos.',
+                hint: 'Comando de extracción de repositorios: git-dumper'
+            },
+            { 
+                id: 5, x: 2950, y: 200, width: 34, height: 50, hacked: false, 
+                command: 'JOHN', 
+                desc: 'NODO 5: Descifrado offline de hashes de contraseñas de empleados extraídos de la base de datos.',
+                hint: 'Comando clásico de cracking de hashes: john'
+            },
+            { 
+                id: 6, x: 3950, y: 120, width: 34, height: 50, hacked: false, 
+                command: 'HASHCAT', 
+                desc: 'NODO 6: Craqueo acelerado por GPU de hashes WPA/WPA2 y contraseñas complejas mediante ataques de reglas.',
+                hint: 'Comando de cracking por GPU: hashcat'
+            },
+            { 
+                id: 7, x: 4630, y: 120, width: 34, height: 50, hacked: false, 
+                command: 'AIRCRACK-NG', 
+                desc: 'NODO 7: Inyección y captura de paquetes en la red Wi-Fi protegida de la sede para descifrar la clave PSK.',
+                hint: 'Comando suite wifi: aircrack-ng'
+            },
+            { 
+                id: 8, x: 4950, y: 190, width: 34, height: 50, hacked: false, 
+                command: 'SETOOLKIT', 
+                desc: 'NODO 8: Despliegue de infraestructura de ingeniería social (Phishing) y simulación Rubber Ducky USB.',
+                hint: 'Comando framework de ingenieria social: setoolkit'
+            }
+        ];
+
+        // Drones de seguridad enemigos patrullando los pasillos
+        let drones = [
+            { x: 400, y: 310, minX: 200, maxX: 700, speed: 2.0, width: 28, height: 22, dir: 1 },
+            { x: 1200, y: 310, minX: 900, maxX: 1400, speed: 2.4, width: 28, height: 22, dir: -1 },
+            { x: 1800, y: 310, minX: 1550, maxX: 2100, speed: 2.2, width: 28, height: 22, dir: 1 },
+            { x: 2400, y: 310, minX: 2150, maxX: 2800, speed: 2.8, width: 28, height: 22, dir: -1 },
+            { x: 3700, y: 310, minX: 3500, maxX: 4100, speed: 2.5, width: 28, height: 22, dir: 1 },
+            { x: 4400, y: 310, minX: 4200, maxX: 4800, speed: 3.0, width: 28, height: 22, dir: -1 }
+        ];
+
+        let activeTerminal = null;
+
+        // --- CONTROLES DE TECLADO ---
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+            if (e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Space') {
+                if (gameState === 'PLAYING' && player.grounded) {
+                    player.vy = player.jumpForce;
+                    player.grounded = false;
+                    playJumpSound();
+                }
+                e.preventDefault();
+            }
+            if (e.code === 'KeyE') {
+                if (gameState === 'PLAYING' && activeTerminal && !activeTerminal.hacked) {
+                    openTerminalConsole(activeTerminal);
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+        });
+
+        // Manejo de comandos en la terminal interactiva
+        const termInput = document.getElementById('terminal-command-input');
+        termInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                let typed = termInput.value.trim().toUpperCase();
+                termInput.value = '';
+                if (!typed || !activeTerminal) return;
+
+                let feedback = document.getElementById('hack-feedback');
+                // Validación tolerante (comprueba si incluye el comando exacto o coincide)
+                if (typed.includes(activeTerminal.command) || typed === activeTerminal.command) {
+                    feedback.className = 'text-xs h-6 text-center text-[#00ff66] font-bold animate-pulse';
+                    feedback.innerText = `¡COMANDO VÁLIDO! Nodo ${activeTerminal.id} comprometido con éxito.`;
+                    playSuccessSound();
+                    score += 1250;
+                    activeTerminal.hacked = true;
+
+                    setTimeout(() => {
+                        document.getElementById('hack-modal').classList.add('hidden');
+                        gameState = 'PLAYING';
+                        updateHUD();
+                        checkVictoryCondition();
+                    }, 1400);
+                } else {
+                    feedback.className = 'text-xs h-6 text-center text-[#ff0055] font-bold';
+                    feedback.innerText = `ACCESO DENEGADO. Sintaxis incorrecta. Revisa el comando pentest.`;
+                    hp -= 10;
+                    playDamageSound();
+                    updateHUD();
+                    if (hp <= 0) {
+                        document.getElementById('hack-modal').classList.add('hidden');
+                        triggerGameOver();
+                    }
+                }
+            }
+        });
+
+        function startGame() {
+            initAudio();
+            document.getElementById('start-screen').classList.add('hidden');
+            gameState = 'PLAYING';
+            resetLevelState();
+        }
+
+        function resetLevelState() {
+            score = 0;
+            hp = 100;
+            player.x = 50;
+            player.y = 250;
+            player.vx = 0;
+            player.vy = 0;
+            cameraX = 0;
+            terminals.forEach(t => t.hacked = false);
+            updateHUD();
+        }
+
+        function resetGame() {
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('victory-screen').classList.add('hidden');
+            resetLevelState();
+            gameState = 'PLAYING';
+        }
+
+        function openTerminalConsole(term) {
+            gameState = 'HACKING';
+            activeTerminal = term;
+            
+            document.getElementById('hack-title').innerText = `> CONSOLA ROOT E-CORP // NODO #${term.id}`;
+            document.getElementById('hack-node-id').innerText = `OBJETIVO ${term.id}/8`;
+            document.getElementById('hack-desc').innerText = term.desc;
+            document.getElementById('hack-hint').innerText = term.hint;
+            document.getElementById('hack-feedback').innerText = '';
+            
+            document.getElementById('hack-modal').classList.remove('hidden');
+            setTimeout(() => termInput.focus(), 100);
+        }
+
+        function checkVictoryCondition() {
+            let hackedCount = terminals.filter(t => t.hacked).length;
+            if (hackedCount >= terminals.length) {
+                gameState = 'VICTORY';
+                document.getElementById('vic-score').innerText = score;
+                document.getElementById('vic-hp').innerText = hp + '%';
+                document.getElementById('victory-screen').classList.remove('hidden');
+            }
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAMEOVER';
+            let hackedCount = terminals.filter(t => t.hacked).length;
+            document.getElementById('go-score').innerText = score;
+            document.getElementById('go-terminals').innerText = `${hackedCount} / 8`;
+            document.getElementById('gameover-screen').classList.remove('hidden');
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-hp').innerText = hp + '%';
+            document.getElementById('hud-score').innerText = String(score).padStart(6, '0');
+            let hackedCount = terminals.filter(t => t.hacked).length;
+            document.getElementById('hud-terminals').innerText = `${hackedCount} / 8`;
+            
+            let zona = player.x < 1400 ? "SECTOR 1: SERVIDORES" : (player.x < 3400 ? "SECTOR 2: REDES INTERNAS" : "SECTOR 3: BÚNKER STEEL MOUNTAIN");
+            document.getElementById('status-log').innerText = activeTerminal && !activeTerminal.hacked ? 
+                `[${zona}] CERCA DE TERMINAL PENTEST. PULSA 'E'.` : 
+                `[${zona}] EVITA LOS DRONES Y AVANZA HACIA LAS 8 TERMINALES.`;
+        }
+
+        // --- BUCLE PRINCIPAL DE JUEGO ---
+        function gameLoop() {
+            if (gameState === 'PLAYING') {
+                // Movimiento horizontal
+                if (keys.left) {
+                    player.vx = -player.speed;
+                    player.facing = 'left';
+                } else if (keys.right) {
+                    player.vx = player.speed;
+                    player.facing = 'right';
+                } else {
+                    player.vx = 0;
+                }
+
+                // Gravedad y físicas de salto
+                player.vy += player.gravity;
+                player.x += player.vx;
+                player.y += player.vy;
+
+                // Límites de mapa
+                if (player.x < 0) player.x = 0;
+                if (player.x + player.width > levelWidth) player.x = levelWidth - player.width;
+
+                // Colisiones con plataformas
+                player.grounded = false;
+                for (let p of platforms) {
+                    if (player.x + player.width > p.x && player.x < p.x + p.width &&
+                        player.y + player.height >= p.y && player.y + player.height - player.vy <= p.y + 12) {
+                        player.y = p.y - player.height;
+                        player.vy = 0;
+                        player.grounded = true;
+                    }
+                }
+
+                // Caída al vacío
+                if (player.y > canvas.height + 60) {
+                    hp -= 40;
+                    playDamageSound();
+                    player.x = Math.max(50, player.x - 400);
+                    player.y = 100;
+                    if (hp <= 0) triggerGameOver();
+                }
+
+                // Actualizar drones patrulla
+                for (let d of drones) {
+                    d.x += d.speed * d.dir;
+                    if (d.x < d.minX || d.x > d.maxX) d.dir *= -1;
+
+                    // Colisión jugador con dron enemigo
+                    if (player.x < d.x + d.width && player.x + player.width > d.x &&
+                        player.y < d.y + d.height && player.y + player.height > d.y) {
+                        hp -= 1.2;
+                        if (Math.random() < 0.12) playDamageSound();
+                        if (hp <= 0) triggerGameOver();
+                    }
+                }
+
+                // Detección de proximidad a terminales
+                activeTerminal = null;
+                for (let t of terminals) {
+                    if (Math.abs((player.x + player.width/2) - (t.x + t.width/2)) < 55 &&
+                        Math.abs((player.y + player.height/2) - (t.y + t.height/2)) < 60) {
+                        activeTerminal = t;
+                        break;
+                    }
+                }
+
+                let prompt = document.getElementById('interact-prompt');
+                if (activeTerminal && !activeTerminal.hacked) {
+                    prompt.classList.remove('hidden');
+                } else {
+                    prompt.classList.add('hidden');
+                }
+
+                // Cámara fluida siguiendo al personaje
+                let targetCameraX = player.x - canvas.width / 3;
+                if (targetCameraX < 0) targetCameraX = 0;
+                if (targetCameraX > levelWidth - canvas.width) targetCameraX = levelWidth - canvas.width;
+                cameraX += (targetCameraX - cameraX) * 0.1;
+
+                updateHUD();
+            }
+
+            // --- RENDERIZADO GRÁFICO (CANVAS RETRO CRT) ---
+            ctx.fillStyle = '#020502';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Rejilla de ciberespacio de fondo
+            ctx.strokeStyle = 'rgba(0, 255, 102, 0.035)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < levelWidth; x += 120) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            // Dibujar plataformas (Infraestructura de servidores E-Corp)
+            for (let p of platforms) {
+                ctx.fillStyle = '#061107';
+                ctx.fillRect(p.x, p.y, p.width, p.height);
+                ctx.strokeStyle = '#00ff66';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(p.x, p.y, p.width, p.height);
+
+                // Luces de servidores en las plataformas
+                ctx.fillStyle = 'rgba(0, 255, 102, 0.22)';
+                for (let rx = p.x + 25; rx < p.x + p.width - 25; rx += 45) {
+                    ctx.fillRect(rx, p.y + 5, 14, 4);
+                }
+            }
+
+            // Dibujar las 8 Terminales Corporativas
+            for (let t of terminals) {
+                ctx.fillStyle = t.hacked ? '#003311' : '#ffaa00';
+                ctx.fillRect(t.x, t.y, t.width, t.height);
+                ctx.strokeStyle = t.hacked ? '#00ff66' : '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(t.x, t.y, t.width, t.height);
+
+                // Pantalla de terminal
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(t.x + 4, t.y + 6, t.width - 8, 20);
+                
+                ctx.fillStyle = t.hacked ? '#00ff66' : '#ffaa00';
+                ctx.font = '9px "Share Tech Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(t.hacked ? `[OK${t.id}]` : `[#${t.id}]`, t.x + t.width/2, t.y + 20);
+            }
+
+            // Dibujar Drones enemigos patrullando
+            for (let d of drones) {
+                ctx.fillStyle = '#ff0055';
+                ctx.fillRect(d.x, d.y, d.width, d.height);
+                // Óptica del dron
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(d.x + 6, d.y + 6, 16, 6);
+                ctx.fillStyle = '#ffff00';
+                ctx.fillRect(d.x + 10, d.y + 8, 8, 2);
+            }
+
+            // --- DIBUJAR A MR. OEITSS (Humano con sudadera y capucha negra pixel art) ---
+            let px = player.x;
+            let py = player.y;
+
+            // Capucha superior
+            ctx.fillStyle = '#0a0a0a';
+            ctx.beginPath();
+            ctx.arc(px + 13, py + 13, 11, Math.PI, 0, false);
+            ctx.fill();
+
+            // Rostro en sombra y ojos cibernéticos brillantes
+            ctx.fillStyle = '#111111';
+            ctx.fillRect(px + 5, py + 10, 16, 8);
+            ctx.fillStyle = '#00ff66';
+            if (player.facing === 'right') {
+                ctx.fillRect(px + 14, py + 12, 3, 3);
+            } else {
+                ctx.fillRect(px + 9, py + 12, 3, 3);
+            }
+
+            // Sudadera / Cuerpo con capucha
+            ctx.fillStyle = '#111f14';
+            ctx.fillRect(px, py + 16, player.width, 22);
+
+            // Pantalones oscuros
+            ctx.fillStyle = '#0a120d';
+            ctx.fillRect(px + 3, py + 38, 8, 10);
+            ctx.fillRect(px + 15, py + 38, 8, 10);
+
+            ctx.restore();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
